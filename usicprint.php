@@ -2,10 +2,9 @@
 include('function_stuff.php');
 
 /* initialize prices for operators and users */
-$file = fopen('price', 'r');
-$price = fgets($file);
-$price_operator = fgets($file);
-fclose($file);
+$price = $GLOBALS['PRICES']['users'];
+$price_operator = $GLOBALS['PRICES']['operators'];
+
 ?>
 
 
@@ -35,7 +34,13 @@ else{
 
 	/* if logged in then check if user is an operator */
 	/* used just after login to open the "default tab" for operator */
-	exec("/opt/usic/bin/usicgroup check staff ".trim(htmlspecialchars($_REQUEST['username'])), $output, $err);
+    
+    #print_r($UMS_UTILS);
+    #print_r($MANAGING_GROUPS);
+    
+    $cmd = UMS_UTILS_PATH . $UMS_UTILS['group'] . " check " . $MANAGING_GROUPS[0] . " ". trim(htmlspecialchars($_REQUEST['username']));
+    #echo "cmd = $cmd\n";
+	exec($cmd, $output, $err);
 
         if (!strcmp($_REQUEST['username'],'gloria') )$err = 0;
 	/* if operator */

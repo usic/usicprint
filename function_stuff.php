@@ -1,11 +1,14 @@
 <?
+
+require("config.php");
+
 /* This function connects to datebase, where users bills are.
    username and pass used here are my own. And I'm not a mad one!
    It's just necessary. 
    Datebase has one table with 2 fields: uid && bill (copecks) */
 function connect_to_DB(){
-	mysql_connect('db.usic.lan:3306', 'gloria','mia6Eith') or die("can't connect to the datebase");
-        mysql_select_db('gloriadb') or die(mysql_error());
+	mysql_connect($GLOBALS['DB_PARAMS']['host'], $GLOBALS['DB_PARAMS']['user'], $GLOBALS['DB_PARAMS']['password']) or die("Can't connect to the database");
+        mysql_select_db($GLOBALS['DB_PARAMS']['name']) or die(mysql_error());
 }
 
 /* finishs connection to datebase*/
@@ -38,9 +41,9 @@ function pay($userid,$sum_to_pay,$how_much_it_was){
    3. checks if user with such uid exists in MySQL datebase
    4. if not - creates corresponding record in table users*/
 function check_user($username,$password){	
-	exec("echo ".trim($password)." | /opt/usic/bin/usiccheckpasswd ".trim($username), $output, $err);    
+	exec("echo ".trim($password)." | " . UMS_UTILS_PATH . $GLOBALS['UMS_UTILS']['check_passwd'] . " " . trim($username), $output, $err);    
 	if($err==0){
-		exec('echo -e "login='.trim($username).'\nvalues=uid" |/opt/usic/bin/usic_userinfo',$output,$err);
+		exec('echo -e login=' . trim($username) . ' \nvalues=uid | ' .  UMS_UTILS_PATH . $GLOBALS['UMS_UTILS']['user_info'], $output,$err);
 		foreach($output as $string){$userid = substr(trim($string),4);}
 		connect_to_DB();
 		$query = "SELECT userid FROM users WHERE userid='".$userid."'";
@@ -55,7 +58,7 @@ function check_user($username,$password){
 }
 
 function get_uid_by_username($username){
-	exec('echo -e "login='.trim($username).'\nvalues=uid" |/opt/usic/bin/usic_userinfo',$output,$err);
+	exec('echo -e "login='.trim($username).'\nvalues=uid" | ' . UMS_UTILS_PATH . $GLOBALS['UMS_UTILS']['user_info'],$output,$err);
 	foreach($output as $string){$userid = substr(trim($string),4);}
 	return $userid;
 }
@@ -68,8 +71,8 @@ function echo_price($to_echo){
 
 /* opens connection to the print server, where some scripts should execute*/
 function connect_to_printserver(){
-@	$con = ssh2_connect("scribus.usic.lan", 22) or die("unable to establish connection to scribus.usic.lan");
-@       ssh2_auth_password($con, "gloria", "23fialki") or die("fail: unable to authenticate");
+	$con = ssh2_connect($GLOBALS['PRINT_SERVER_PARAMS']['hostname'], 22) or die("unable to establish connection to " . $GLOBALS['PRINT_SERVER_PARAMS']['hostname']);
+       ssh2_auth_password($con, $GLOBALS['PRINT_SERVER_PARAMS']['username'], $GLOBALS['PRINT_SERVER_PARAMS']['password']) or die("fail: unable to authenticate");
 	return $con;
 }
 
@@ -86,7 +89,7 @@ function count_pages($con, $jobid){
 
 	/* special script, which is located on the print server 
 	   and can count number of pages in any document  from the print queue */
-	if ($stream = ssh2_exec($con, "/etc/scripts/pages ".$jobid)) {
+	if ($stream = ssh2_exec($con, CUPS_UTILS_PATH . $GLOBALS['CUPS_UTILS']['pages'] . $jobid)) {
 		// collects returning data from command
 		stream_set_blocking($stream, true);
 		$data = "";
@@ -104,7 +107,7 @@ function print_job($ssh_con, $jobid, $price = 0, $userid = 0){
 	/* for operators */
 	if ($userid == 0 && $price == 0){
 		connect_to_DB();
-		$stream = ssh2_exec($ssh_con, "/etc/scripts/usicprint allow ".trim($jobid));
+		$stream = ssh2_exec($ssh_con, CUPS_UTILS_PATH . $GLOBALS['CUPS_UTILS']['print'] . " allow ".trim($jobid));
         	fclose($stream);
 		close_connection();
 	} else {
@@ -112,7 +115,7 @@ function print_job($ssh_con, $jobid, $price = 0, $userid = 0){
 		$how_much_money_we_have = check_bill($userid);
 		connect_to_DB();
 		if(($how_much_money_we_have>=$price) && pay($userid,$price, $how_much_money_we_have)){
-			$stream = ssh2_exec($ssh_con, "/etc/scripts/usicprint allow ".trim($jobid));
+			$stream = ssh2_exec($ssh_con, CUPS_UTILS_PATH . $GLOBALS['CUPS_UTILS']['print'] . " allow ".trim($jobid));
                 	fclose($stream);
 		}        
 		close_connection();
@@ -122,7 +125,7 @@ function print_job($ssh_con, $jobid, $price = 0, $userid = 0){
 
 /* removes job with given id from the print queue */
 function cancel_job($ssh_con, $jobid){
-	$stream = ssh2_exec($ssh_con, "/etc/scripts/usicprint deny ".trim($jobid));
+	$stream = ssh2_exec($ssh_con, CUPS_UTILS_PATH . $GLOBALS['CUPS_UTILS']['print'] . " deny ".trim($jobid));
 	fclose($stream);
 }
 /*

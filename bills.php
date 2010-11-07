@@ -8,7 +8,7 @@ $uname = htmlspecialchars($_REQUEST['uname']);
 //include ("function_stuff.php");
 if($uname!='' && strcmp($uname,'Username')){
 	/* check via DB if such a user exists */
-	exec('echo -e "login='.trim($uname).'\nvalues=uid" |/opt/usic/bin/usic_userinfo',$output,$err);
+	exec('echo -e "login='.trim($uname).'\nvalues=uid" | ' . UMS_UTILS_PATH . UMS_UTILS['user_info'],$output,$err);
 	
 	/* if user exists and money are in the right format */
 	if($err==0 && ereg("^([0-9])+$",trim($_REQUEST['hrn'])) && ereg("^([0-9])+$",trim($_REQUEST['kop']))){

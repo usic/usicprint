@@ -47,7 +47,7 @@
                         <!--price for job -->
                         <td align="center">
 				<?  /* check if user is an operator. For operators the priceis different */
-				    exec("/opt/usic/bin/usicgroup check staff ".$author, $output, $err);
+				    exec(UMS_UTILS_PATH . $UMS_UTILS['group'] . " check " . $MANAGING_GROUPS[0] . " " . $author, $output, $err);
 				    if($err == 0) {$price_for_job = $pages* $price_operator;} /* if this is an operator*/
 				    else $price_for_job = $pages* $price; /* if this is an ordinary user */
 
